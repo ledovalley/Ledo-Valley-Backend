@@ -37,8 +37,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
-      "https://ledo-valley-admin.vercel.app/admin/login",
-      "https://ledo-valley-website.vercel.app/"
+      "https://ledo-valley-admin.vercel.app",
+      "https://ledo-valley-website.vercel.app"
     ],
   })
 );
