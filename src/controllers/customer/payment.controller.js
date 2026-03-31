@@ -157,20 +157,25 @@ export const payuSuccess = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    /* =============================
-       POST OPERATIONS
-    ============================== */
+    console.log("Before redirecting to success page");
 
-    await generateInvoicePDF(order);
+    // ✅ Immediately redirect success
+    res.redirect(`${env.FRONTEND_URL}/payment/payment-success`);
 
-    order.invoiceUrl = `/invoices/${order.orderNumber}.pdf`;
-    await order.save();
+    // 🔥 Run async background tasks (don’t block response)
+    (async () => {
+      try {
+        console.log("Starting post-payment background tasks");
+        await generateInvoicePDF(order);
 
-    await sendOrderConfirmationEmail(order);
+        order.invoiceUrl = `/invoices/${order.orderNumber}.pdf`;
+        await order.save();
 
-    return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-success`
-    );
+        await sendOrderConfirmationEmail(order);
+      } catch (err) {
+        console.error("POST PROCESS ERROR:", err);
+      }
+    })();
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
