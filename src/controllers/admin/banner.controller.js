@@ -13,12 +13,14 @@ export const getActiveBanners = async (req, res) => {
                 {
                     $or: [
                         { startDate: { $exists: false } },
+                        { startDate: null },                // ✅ ADD THIS
                         { startDate: { $lte: now } },
                     ],
                 },
                 {
                     $or: [
                         { endDate: { $exists: false } },
+                        { endDate: null },                  // ✅ ADD THIS
                         { endDate: { $gte: now } },
                     ],
                 },
