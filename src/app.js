@@ -86,7 +86,6 @@ app.use("/api/customer/shop-banner", customerShopBannerRoutes);
 
 app.use("/api", shippingRoutes);
 app.use("/api", paymentRoutes);
-app.use("/invoices", express.static("invoices"));
 
 app.use(errorHandler);
 

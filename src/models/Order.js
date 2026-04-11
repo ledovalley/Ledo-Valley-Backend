@@ -205,7 +205,6 @@ returnInfo: {
   },
   refundAmount: Number,
   refundedAt: Date,
-  invoiceUrl: String,
 },
 
     /* ================= PRICE BREAKDOWN ================= */
@@ -222,7 +221,7 @@ returnInfo: {
 
     shippingAmount: {
       type: Number,
-      default: 60,
+      default: 0,
     },
 
     discountAmount: {

@@ -4,7 +4,6 @@ import Order from "../../models/Order.js";
 import Product from "../../models/Product.js";
 import Customer from "../../models/Customer.js";
 import Coupon from "../../models/Coupon.js";
-import { generateInvoicePDF } from "../../services/invoice.service.js";
 import { sendOrderConfirmationEmail } from "../../services/email.service.js";
 import { env } from "../../config/env.js";
 
@@ -166,11 +165,6 @@ export const payuSuccess = async (req, res) => {
     (async () => {
       try {
         console.log("Starting post-payment background tasks");
-        await generateInvoicePDF(order);
-
-        order.invoiceUrl = `/invoices/${order.orderNumber}.pdf`;
-        await order.save();
-
         await sendOrderConfirmationEmail(order);
       } catch (err) {
         console.error("POST PROCESS ERROR:", err);

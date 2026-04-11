@@ -2,6 +2,7 @@ import express from "express";
 import {
     listMyOrders,
     getMyOrder,
+    downloadMyInvoice,
     cancelMyOrder,
     retryPayment,
     requestReturn,
@@ -11,6 +12,7 @@ import { authenticateCustomer } from "../../middlewares/authenticateCustomer.js"
 const router = express.Router();
 
 router.get("/orders", authenticateCustomer, listMyOrders);
+router.get("/orders/:orderId/invoice", authenticateCustomer, downloadMyInvoice);
 router.get("/orders/:orderId", authenticateCustomer, getMyOrder);
 router.patch("/orders/:orderId/cancel", authenticateCustomer, cancelMyOrder);
 router.post(

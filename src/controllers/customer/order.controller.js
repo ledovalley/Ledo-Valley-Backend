@@ -3,6 +3,7 @@ import crypto from "crypto";
 import Order from "../../models/Order.js";
 import Product from "../../models/Product.js";
 import { env } from "../../config/env.js";
+import { generateInvoicePDF } from "../../services/invoice.service.js";
 
 /* ======================================================
    LIST CUSTOMER ORDERS
@@ -44,6 +45,40 @@ export const getMyOrder = async (req, res) => {
         console.error("GET MY ORDER ERROR:", error);
         res.status(500).json({
             message: "Failed to fetch order",
+        });
+    }
+};
+
+export const downloadMyInvoice = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await Order.findOne({
+            _id: orderId,
+            customerId: req.customer.id,
+            "payment.status": "SUCCESS",
+        }).lean();
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Invoice not found",
+            });
+        }
+
+        const pdfBuffer = await generateInvoicePDF(order);
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${order.orderNumber}.pdf"`
+        );
+        res.setHeader("Content-Length", pdfBuffer.length);
+
+        return res.send(pdfBuffer);
+    } catch (error) {
+        console.error("DOWNLOAD INVOICE ERROR:", error);
+        res.status(500).json({
+            message: "Failed to generate invoice",
         });
     }
 };

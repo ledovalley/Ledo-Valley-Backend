@@ -79,14 +79,12 @@ export const sendOrderConfirmationEmail = async (order) => {
   if (!order?.customerSnapshot?.email) return;
 
   const template = loadTemplate("order-confirmation.html");
+  const orderUrl = `${env.FRONTEND_URL.replace(/\/$/, "")}/account/orders`;
 
   const html = template
     .replace(/{{ORDER_NUMBER}}/g, order.orderNumber)
     .replace(/{{TOTAL}}/g, order.grandTotal.toFixed(2))
-    .replace(
-      /{{INVOICE_URL}}/g,
-      `${env.BASE_URL}${order.invoiceUrl || ""}`
-    );
+    .replace(/{{ORDER_URL}}/g, orderUrl);
 
   await sendEmail({
     to: order.customerSnapshot.email,

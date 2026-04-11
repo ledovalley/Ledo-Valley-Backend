@@ -1,4 +1,4 @@
-import Product from "../../models/Product.js";
+import Product, { TEA_TYPES } from "../../models/Product.js";
 import cloudinary from "../../services/cloudinary.service.js";
 import slugify from "slugify";
 
@@ -33,6 +33,12 @@ export const createProduct = async (req, res) => {
     if (!name?.trim() || !sku?.trim()) {
       return res.status(400).json({
         message: "Name and SKU are required",
+      });
+    }
+
+    if (!TEA_TYPES.includes(teaType)) {
+      return res.status(400).json({
+        message: "Invalid tea type",
       });
     }
 
@@ -489,6 +495,12 @@ export const updateProductMeta = async (req, res) => {
     }
 
     if (teaType !== undefined) {
+      if (!TEA_TYPES.includes(teaType)) {
+        return res.status(400).json({
+          message: "Invalid tea type",
+        });
+      }
+
       product.teaType = teaType;
     }
 

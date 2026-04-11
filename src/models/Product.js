@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
 
+export const TEA_TYPES = [
+  "Black Tea",
+  "Green Tea",
+  "Organic Tea",
+  "Speciality Tea",
+];
+
 /* =====================================================
    REVIEW SCHEMA
 ===================================================== */
@@ -177,7 +184,9 @@ const productSchema = new mongoose.Schema(
 
     teaType: {
       type: String,
+      enum: TEA_TYPES,
       index: true,
+      required: true,
     },
 
     bestFor: [String],

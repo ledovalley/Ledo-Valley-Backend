@@ -1,5 +1,18 @@
 import Product from "../../models/Product.js";
 
+const TEA_TYPE_ALIASES = {
+  "Black Tea": ["Black Tea", "Black", "CTC Tea"],
+  "Green Tea": ["Green Tea", "Green"],
+  "Organic Tea": ["Organic Tea", "Organic", "organic"],
+  "Speciality Tea": [
+    "Speciality Tea",
+    "Speciality",
+    "Specialty Tea",
+    "Specialty",
+    "Exotic Tea",
+  ],
+};
+
 /* ======================================================
    LIST PRODUCTS (Shop Page)
 ====================================================== */
@@ -11,13 +24,19 @@ export const listProducts = async (req, res) => {
       search,
       sort = "newest",
       tag,
-      teaType,
       minPrice,
       maxPrice,
       available,
       weight,
       unit,
     } = req.query;
+
+    const selectedTeaTypes = []
+      .concat(req.query.teaType || req.query["teaType[]"] || [])
+      .filter(Boolean);
+    const teaTypeMatches = selectedTeaTypes.flatMap(
+      (teaType) => TEA_TYPE_ALIASES[teaType] || [teaType]
+    );
 
     const safeLimit = Math.min(parseInt(limit) || 9, 50);
     const safePage = Math.max(parseInt(page) || 1, 1);
@@ -46,8 +65,8 @@ export const listProducts = async (req, res) => {
       productMatch.tags = tag.toUpperCase();
     }
 
-    if (teaType) {
-      productMatch.teaType = { $in: [].concat(teaType) };
+    if (teaTypeMatches.length) {
+      productMatch.teaType = { $in: teaTypeMatches };
     }
 
     /* ======================================================

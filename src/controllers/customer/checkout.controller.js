@@ -9,8 +9,12 @@ import { env } from "../../config/env.js";
 /* ======================================================
    CONSTANTS
 ====================================================== */
-const GST_PERCENT = 18;
-const SHIPPING_CHARGE = 60;
+const GST_PERCENT = 5;
+const FREE_SHIPPING_MIN_ORDER_VALUE = 500;
+const FLAT_SHIPPING_CHARGE = 60;
+
+const getShippingAmount = (itemsTotal) =>
+  itemsTotal >= FREE_SHIPPING_MIN_ORDER_VALUE ? 0 : FLAT_SHIPPING_CHARGE;
 
 /* ======================================================
    CREATE ORDER & INITIATE PAYMENT
@@ -135,8 +139,10 @@ export const createCheckout = async (req, res) => {
       ((taxableAmount * GST_PERCENT) / 100).toFixed(2)
     );
 
+    const shippingAmount = getShippingAmount(itemsTotal);
+
     const grandTotal = Number(
-      (taxableAmount + gstAmount + SHIPPING_CHARGE).toFixed(2)
+      (taxableAmount + gstAmount + shippingAmount).toFixed(2)
     );
 
     if (grandTotal <= 0) {
@@ -172,7 +178,7 @@ export const createCheckout = async (req, res) => {
           shippingAddress: address.toObject(),
           itemsTotal,
           gstAmount,
-          shippingAmount: SHIPPING_CHARGE,
+          shippingAmount,
           discountAmount,
           grandTotal,
           coupon: couponSnapshot,
