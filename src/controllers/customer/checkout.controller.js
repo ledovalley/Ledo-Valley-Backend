@@ -130,19 +130,19 @@ export const createCheckout = async (req, res) => {
     }
 
     /* ============================
-       GST + TOTAL
+       GST-INCLUSIVE TOTAL
     ============================ */
 
     const taxableAmount = itemsTotal - discountAmount;
 
     const gstAmount = Number(
-      ((taxableAmount * GST_PERCENT) / 100).toFixed(2)
+      (taxableAmount - taxableAmount / (1 + GST_PERCENT / 100)).toFixed(2)
     );
 
     const shippingAmount = getShippingAmount(itemsTotal);
 
     const grandTotal = Number(
-      (taxableAmount + gstAmount + shippingAmount).toFixed(2)
+      (taxableAmount + shippingAmount).toFixed(2)
     );
 
     if (grandTotal <= 0) {

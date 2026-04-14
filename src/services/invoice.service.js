@@ -24,7 +24,7 @@ export const generateInvoicePDF = async (order) => {
           `).join("")}
           <hr/>
           <p>Items: Rs. ${order.itemsTotal}</p>
-          <p>GST (5%): Rs. ${order.gstAmount}</p>
+          <p>GST included (5%): Rs. ${order.gstAmount}</p>
           <p>Shipping: Rs. ${order.shippingAmount}</p>
           <h2>Total: Rs. ${order.grandTotal}</h2>
         </body>

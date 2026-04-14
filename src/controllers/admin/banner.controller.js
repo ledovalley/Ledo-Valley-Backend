@@ -13,14 +13,14 @@ export const getActiveBanners = async (req, res) => {
                 {
                     $or: [
                         { startDate: { $exists: false } },
-                        { startDate: null },                // ✅ ADD THIS
+                        { startDate: null },
                         { startDate: { $lte: now } },
                     ],
                 },
                 {
                     $or: [
                         { endDate: { $exists: false } },
-                        { endDate: null },                  // ✅ ADD THIS
+                        { endDate: null },
                         { endDate: { $gte: now } },
                     ],
                 },
@@ -35,9 +35,8 @@ export const getActiveBanners = async (req, res) => {
     }
 };
 
-
 /* ==========================
-   ADMIN CREATE / UPDATE
+   ADMIN CREATE
 ========================== */
 export const createBanner = async (req, res) => {
     try {
@@ -47,6 +46,7 @@ export const createBanner = async (req, res) => {
             visibility,
             startDate,
             endDate,
+            isActive,
         } = req.body;
 
         const count = await Banner.countDocuments();
@@ -57,6 +57,7 @@ export const createBanner = async (req, res) => {
             visibility,
             startDate: startDate || null,
             endDate: endDate || null,
+            isActive: typeof isActive === "boolean" ? isActive : true,
             order: count,
         });
 
@@ -66,6 +67,42 @@ export const createBanner = async (req, res) => {
     }
 };
 
+/* ==========================
+   ADMIN UPDATE
+========================== */
+export const updateBanner = async (req, res) => {
+    try {
+        const {
+            message,
+            couponCode,
+            visibility,
+            startDate,
+            endDate,
+            isActive,
+        } = req.body;
+
+        const banner = await Banner.findByIdAndUpdate(
+            req.params.id,
+            {
+                message,
+                couponCode,
+                visibility,
+                startDate: startDate || null,
+                endDate: endDate || null,
+                isActive,
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!banner) {
+            return res.status(404).json({ message: "Banner not found" });
+        }
+
+        res.json(banner);
+    } catch {
+        res.status(500).json({ message: "Failed to update banner" });
+    }
+};
 
 export const reorderBanners = async (req, res) => {
     try {
