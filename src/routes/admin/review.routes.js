@@ -4,6 +4,7 @@ import {
   deleteReview,
   toggleTestimonial,
   getTestimonials,
+  updateReviewStatus,
 } from "../../controllers/customer/review.controller.js";
 import { authenticateAdmin } from "../../middlewares/authenticateAdmin.js";
 
@@ -22,6 +23,12 @@ router.patch(
   "/:productId/:reviewId/testimonial",
   authenticateAdmin,
   toggleTestimonial
+);
+
+router.put(
+  "/:productId/:reviewId/status",
+  authenticateAdmin,
+  updateReviewStatus
 );
 
 export default router;

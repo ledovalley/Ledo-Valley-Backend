@@ -23,6 +23,7 @@ export const getCart = async (req, res) => {
 
     await populateCart(customer);
 
+    const validCartItems = [];
     const formattedCart = customer.cart.map((item) => {
       const product = item.product;
 
@@ -31,6 +32,15 @@ export const getCart = async (req, res) => {
       const variant = product.variants.id(item.variantId);
 
       if (!variant) return null;
+      if (product.status !== "ACTIVE") return null;
+      if (variant.status !== "ACTIVE" || !variant.availability) return null;
+
+      validCartItems.push({
+        product: product._id,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        priceAtAdd: item.priceAtAdd,
+      });
 
       return {
         product: {
@@ -49,6 +59,11 @@ export const getCart = async (req, res) => {
         priceAtAdd: item.priceAtAdd,
       };
     });
+
+    if (validCartItems.length !== customer.cart.length) {
+      customer.cart = validCartItems;
+      await customer.save();
+    }
 
     res.json(formattedCart.filter(Boolean));
   } catch (error) {

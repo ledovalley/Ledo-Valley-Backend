@@ -27,3 +27,6 @@ export const uploadProductImage =
 
 export const uploadShopBannerImage =
   createCloudinaryUploader("shop-banners");
+
+export const uploadReviewImage =
+  createCloudinaryUploader("reviews");

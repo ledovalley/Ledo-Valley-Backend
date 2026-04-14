@@ -16,13 +16,13 @@ const reviewSchema = new mongoose.Schema(
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: true,
+      required: false,
     },
 
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
-      required: true,
+      required: false,
     },
 
     productId: {
@@ -30,10 +30,30 @@ const reviewSchema = new mongoose.Schema(
       required: true,
     },
 
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+
     customerName: {
       type: String,
       required: true,
       trim: true,
+    },
+
+    email: {
+      type: String,
+      trim: true,
+    },
+
+    phone: {
+      type: String,
+      trim: true,
+    },
+
+    image: {
+      url: String,
+      publicId: String,
     },
 
     rating: {
@@ -56,7 +76,7 @@ const reviewSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["VISIBLE", "HIDDEN"],
+      enum: ["PENDING", "VISIBLE", "HIDDEN"],
       default: "VISIBLE",
     },
   },
@@ -271,18 +291,20 @@ productSchema.pre("save", function (next) {
    AUTO RATING CALCULATION
 ===================================================== */
 productSchema.methods.calculateRating = function () {
-  if (!this.reviews.length) {
+  const visibleReviews = this.reviews.filter((r) => r.status === "VISIBLE");
+
+  if (!visibleReviews.length) {
     this.rating = 0;
     this.reviewCount = 0;
     return;
   }
 
-  const total = this.reviews.reduce(
+  const total = visibleReviews.reduce(
     (sum, r) => sum + r.rating,
     0
   );
 
-  this.reviewCount = this.reviews.length;
+  this.reviewCount = visibleReviews.length;
   this.rating = parseFloat(
     (total / this.reviewCount).toFixed(1)
   );

@@ -44,19 +44,47 @@ export const createCheckout = async (req, res) => {
 
     let itemsTotal = 0;
     const orderItems = [];
+    const validCartItems = [];
 
     for (const cartItem of customer.cart) {
       const product = await Product.findById(cartItem.product).session(session);
+      const variant = product?.variants.id(cartItem.variantId);
 
-      if (!product || product.status !== "ACTIVE") {
-        throw new Error("Product unavailable");
+      if (
+        !product ||
+        product.status !== "ACTIVE" ||
+        !variant ||
+        variant.status !== "ACTIVE" ||
+        !variant.availability
+      ) {
+        continue;
       }
 
-      const variant = product.variants.id(cartItem.variantId);
+      validCartItems.push({ cartItem, product, variant });
+    }
 
-      if (!variant || variant.status !== "ACTIVE" || !variant.availability) {
-        throw new Error("Variant unavailable");
-      }
+    if (validCartItems.length !== customer.cart.length) {
+      customer.cart = validCartItems.map(({ cartItem }) => ({
+        product: cartItem.product,
+        variantId: cartItem.variantId,
+        quantity: cartItem.quantity,
+        priceAtAdd: cartItem.priceAtAdd,
+      }));
+
+      await customer.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(400).json({
+        message:
+          validCartItems.length > 0
+            ? "Some unavailable items were removed from your cart. Please try checkout again."
+            : "Cart is empty. Unavailable items were removed.",
+        cartUpdated: true,
+      });
+    }
+
+    for (const { cartItem, product, variant } of validCartItems) {
 
       if (variant.stock < cartItem.quantity) {
         throw new Error(`Insufficient stock for ${product.name}`);

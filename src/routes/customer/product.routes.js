@@ -4,7 +4,8 @@ import {
   getSingleProduct,
 } from "../../controllers/customer/product.controller.js";
 import { authenticateCustomer } from "../../middlewares/authenticateCustomer.js";
-import { addProductReview, checkReviewEligibility } from "../../controllers/customer/review.controller.js";
+import { addProductReview, checkReviewEligibility, addExternalReview } from "../../controllers/customer/review.controller.js";
+import { uploadReviewImage } from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
 
@@ -27,6 +28,12 @@ router.get(
   "/products/:productId/review-eligibility",
   authenticateCustomer,
   checkReviewEligibility
+);
+
+router.post(
+  "/reviews/external",
+  uploadReviewImage.single("image"),
+  addExternalReview
 );
 
 export default router;

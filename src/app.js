@@ -11,6 +11,7 @@ import adminCustomersRoutes from "./routes/admin/customer.routes.js";
 import adminReviewsRoutes from "./routes/admin/review.routes.js";
 import adminTopBannerRoutes from "./routes/admin/banner.routes.js";
 import adminShopBannerRoutes from "./routes/admin/shopBanner.routes.js";
+import adminDashboardRoutes from "./routes/admin/dashboard.routes.js";
 
 import customerAuthRoutes from "./routes/customer/auth.routes.js";
 import customerProductRoutes from "./routes/customer/product.routes.js";
@@ -66,6 +67,7 @@ app.use("/api/admin/customers", adminCustomersRoutes);
 app.use("/api/admin/reviews", adminReviewsRoutes);
 app.use("/api/admin/top-banner", adminTopBannerRoutes);
 app.use("/api/admin/shop-banner", adminShopBannerRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 /* =======================
 CUSTOMER ROUTES

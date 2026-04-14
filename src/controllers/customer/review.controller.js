@@ -34,8 +34,8 @@ export const addProductReview = async (req, res) => {
 
     const alreadyReviewed = product.reviews.find(
       (r) =>
-        r.customerId.toString() === customerId &&
-        r.orderId.toString() === orderId
+        r.customerId?.toString() === customerId &&
+        r.orderId?.toString() === orderId
     );
 
     if (alreadyReviewed) {
@@ -57,6 +57,7 @@ export const addProductReview = async (req, res) => {
       customerName: customer.name,
       rating,
       review,
+      status: "VISIBLE",
     });
 
     product.calculateRating();
@@ -71,6 +72,50 @@ export const addProductReview = async (req, res) => {
     console.error("ADD REVIEW ERROR:", error);
     res.status(500).json({
       message: "Failed to add review",
+    });
+  }
+};
+
+export const addExternalReview = async (req, res) => {
+  try {
+    const { productId, variantId, customerName, email, phone, rating, review } = req.body;
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    let imagePayload = undefined;
+    if (req.file) {
+      imagePayload = {
+        url: req.file.path,
+        publicId: req.file.filename,
+      };
+    }
+
+    product.reviews.push({
+      productId,
+      variantId: variantId || undefined,
+      customerName,
+      email,
+      phone,
+      rating: Number(rating),
+      review,
+      image: imagePayload,
+      status: "PENDING", // needs admin approval
+    });
+
+    await product.save();
+
+    res.status(201).json({
+      message: "Feedback submitted successfully! Waiting for moderation.",
+    });
+
+  } catch (error) {
+    console.error("ADD EXTERNAL REVIEW ERROR:", error);
+    res.status(500).json({
+      message: "Failed to submit feedback",
     });
   }
 };
@@ -95,8 +140,8 @@ export const checkReviewEligibility = async (req, res) => {
     const eligibleOrders = deliveredOrders.filter(order => {
       const alreadyReviewed = product.reviews.some(
         r =>
-          r.customerId.toString() === customerId &&
-          r.orderId.toString() === order._id.toString()
+          r.customerId?.toString() === customerId &&
+          r.orderId?.toString() === order._id.toString()
       );
 
       return !alreadyReviewed;
@@ -119,7 +164,7 @@ export const checkReviewEligibility = async (req, res) => {
 
 export const getAllReviews = async (req, res) => {
   try {
-    const { search, rating, testimonial } = req.query;
+    const { search, rating, testimonial, status } = req.query;
 
     const products = await Product.find().lean();
 
@@ -151,6 +196,10 @@ export const getAllReviews = async (req, res) => {
       reviews = reviews.filter(
         r => r.isTestimonial === (testimonial === "true")
       );
+    }
+
+    if (status) {
+      reviews = reviews.filter(r => r.status === status);
     }
 
     // Sort newest first
@@ -222,6 +271,41 @@ export const toggleTestimonial = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to update review",
+    });
+  }
+};
+
+export const updateReviewStatus = async (req, res) => {
+  try {
+    const { productId, reviewId } = req.params;
+    const { status } = req.body;
+
+    if (!["PENDING", "VISIBLE", "HIDDEN"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const review = product.reviews.id(reviewId);
+    if (!review) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    review.status = status;
+    product.calculateRating();
+    await product.save();
+
+    res.json({
+      message: "Review status updated successfully",
+    });
+
+  } catch (error) {
+    console.error("UPDATE REVIEW STATUS ERROR:", error);
+    res.status(500).json({
+      message: "Failed to update review status",
     });
   }
 };
