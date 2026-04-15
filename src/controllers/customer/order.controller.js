@@ -166,7 +166,7 @@ export const cancelMyOrder = async (req, res) => {
 export const retryPayment = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        const SEVENTY_TWO_HOURS = 72 * 60 * 60 * 1000;
 
         const order = await Order.findOne({
             _id: orderId,
@@ -179,35 +179,43 @@ export const retryPayment = async (req, res) => {
             });
         }
 
-        /* ❌ Only FAILED allowed */
+        /* ❌ Validation */
         if (
-            order.payment.status !== "FAILED" ||
-            order.status !== "PAYMENT_FAILED"
+            !["PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status)
         ) {
             return res.status(400).json({
-                message: "Payment retry not allowed",
+                message: "Payment retry not allowed for this order status",
             });
         }
 
-        /* 🔥 NEW: Time restriction */
+        if (order.payment.retryCount >= 3) {
+            return res.status(400).json({
+                message: "Maximum retry attempts reached (3)",
+            });
+        }
+
+        /* 🔥 Time restriction: 3 Days */
         const createdTime = new Date(order.createdAt).getTime();
         const now = Date.now();
 
-        if (now - createdTime > TWENTY_FOUR_HOURS) {
+        if (now - createdTime > SEVENTY_TWO_HOURS) {
             return res.status(400).json({
-                message: "Retry window expired (24 hours)",
+                message: "Retry window expired (3 days)",
             });
         }
 
-        const txnid = order.orderNumber; // 🔥 IMPORTANT: reuse same txn
+        const txnid = `${order.orderNumber}A${(order.payment.retryCount || 0) + 1}`; 
         const amount = order.grandTotal.toFixed(2);
         const hashString = `${env.PAYU_KEY}|${txnid}|${amount}|Ledo Valley Order|${order.customerSnapshot.name}|${order.customerSnapshot.email}|||||||||||${env.PAYU_SALT}`;
         const hash = crypto
             .createHash("sha512")
             .update(hashString)
             .digest("hex");
+
+        /* Increment retry count and reset to pending if failed */
         order.payment.status = "PENDING";
         order.status = "PAYMENT_PENDING";
+        order.payment.retryCount = (order.payment.retryCount || 0) + 1;
 
         await order.save();
 

@@ -217,7 +217,7 @@ export const createCheckout = async (req, res) => {
       { session }
     );
 
-    const txnid = order[0].orderNumber;
+    const txnid = `${order[0].orderNumber}A0`;
 
     /* ============================
        PAYU HASH (EXACT FORMAT)

@@ -71,8 +71,10 @@ export const payuSuccess = async (req, res) => {
        FETCH ORDER
     ============================== */
 
+    const baseOrderNumber = txnid.split("A")[0];
+
     const order = await Order.findOne({
-      orderNumber: txnid,
+      orderNumber: baseOrderNumber,
     }).session(session);
 
     if (!order) {
@@ -177,7 +179,7 @@ export const payuSuccess = async (req, res) => {
     console.error("PAYU SUCCESS ERROR:", error);
 
     return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-failed`
+      `${env.FRONTEND_URL}/payment/payment-failed?error=Verification Failed`
     );
   }
 };
@@ -200,8 +202,10 @@ export const payuFailure = async (req, res) => {
       );
     }
 
+    const baseOrderNumber = txnid.split("A")[0];
+
     const order = await Order.findOne({
-      orderNumber: txnid,
+      orderNumber: baseOrderNumber,
     });
 
     if (order && order.payment.status !== "SUCCESS") {
@@ -211,6 +215,12 @@ export const payuFailure = async (req, res) => {
       await order.save();
     }
 
+    if (order) {
+      return res.redirect(
+        `${env.FRONTEND_URL}/payment/payment-failed?orderId=${order._id}&error=${encodeURIComponent(error_Message || "Payment failed")}`
+      );
+    }
+
     return res.redirect(
       `${env.FRONTEND_URL}/payment/payment-failed`
     );
@@ -218,7 +228,7 @@ export const payuFailure = async (req, res) => {
     console.error("PAYU FAILURE ERROR:", error);
 
     return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-failed`
+      `${env.FRONTEND_URL}/payment/payment-failed?error=${encodeURIComponent(error.message || "An unexpected error occurred")}`
     );
   }
 };

@@ -136,6 +136,11 @@ const paymentSchema = new mongoose.Schema(
     paidAt: Date,
 
     failureReason: String,
+
+    retryCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { _id: false }
 );
