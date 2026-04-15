@@ -288,13 +288,11 @@ orderSchema.pre("save", async function (next) {
       // Pad with zeros to 6 digits, e.g., LV000001
       const seqString = String(counter.seq).padStart(6, "0");
       this.orderNumber = `LV${seqString}`;
-      
-      next();
     } catch (error) {
       next(error);
     }
   } else {
-    next();
+    // Just here 
   }
 });
 
