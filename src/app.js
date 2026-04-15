@@ -41,12 +41,16 @@ app.use(
       "http://localhost:3000",
       "http://localhost:3001",
       "https://ledo-valley-admin.vercel.app",
+      "https://www.ledo-valley-admin.vercel.app",
       "https://ledo-valley-website.vercel.app",
+      "https://www.ledo-valley-website.vercel.app",
       "https://www.ledovalley.com",
+      "https://ledovalley.com",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    optionsSuccessStatus: 200,
   })
 );
 
