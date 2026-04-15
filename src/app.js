@@ -37,16 +37,26 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://ledo-valley-admin.vercel.app",
-      "https://www.ledo-valley-admin.vercel.app",
-      "https://ledo-valley-website.vercel.app",
-      "https://www.ledo-valley-website.vercel.app",
-      "https://www.ledovalley.com",
-      "https://ledovalley.com",
-    ],
+    origin: function (origin, callback) {
+      const allowedPatterns = [
+        /^http:\/\/localhost:\d+$/,
+        /^https:\/\/.*\.vercel\.app$/,
+        /^https:\/\/ledovalley\.com$/,
+        /^https:\/\/www\.ledovalley\.com$/
+      ];
+
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.error(`CORS REJECTED: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
