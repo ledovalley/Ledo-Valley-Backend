@@ -42,7 +42,9 @@ app.use(
         /^http:\/\/localhost:\d+$/,
         /^https:\/\/.*\.vercel\.app$/,
         /^https:\/\/ledovalley\.com$/,
-        /^https:\/\/www\.ledovalley\.com$/
+        /^https:\/\/www\.ledovalley\.com$/,
+        /^https:\/\/secure\.payu\.in$/,
+        /^https:\/\/test\.payu\.in$/
       ];
 
       // Allow requests with no origin (like mobile apps or curl)
