@@ -11,6 +11,7 @@ import { env } from "../../config/env.js";
    PAYU SUCCESS CALLBACK
 ====================================================== */
 export const payuSuccess = async (req, res) => {
+  const FRONTEND_URL = env.FRONTEND_URL || "https://www.ledovalley.com";
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -84,9 +85,7 @@ export const payuSuccess = async (req, res) => {
     if (order.payment.status === "SUCCESS") {
       await session.commitTransaction();
       session.endSession();
-      return res.redirect(
-        `${env.FRONTEND_URL}/payment/payment-success`
-      );
+      return res.redirect(`${FRONTEND_URL}/payment/payment-success`);
     }
 
     /* =============================
@@ -161,7 +160,7 @@ export const payuSuccess = async (req, res) => {
     console.log("Before redirecting to success page");
 
     // ✅ Immediately redirect success
-    res.redirect(`${env.FRONTEND_URL}/payment/payment-success`);
+    res.redirect(`${FRONTEND_URL}/payment/payment-success`);
 
     // 🔥 Run async background tasks (don’t block response)
     (async () => {
@@ -179,7 +178,7 @@ export const payuSuccess = async (req, res) => {
     console.error("PAYU SUCCESS ERROR:", error);
 
     return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-failed?error=Verification Failed`
+      `${FRONTEND_URL}/payment/payment-failed?error=Verification Failed`
     );
   }
 };
@@ -188,21 +187,23 @@ export const payuSuccess = async (req, res) => {
    PAYU FAILURE CALLBACK
 ====================================================== */
 export const payuFailure = async (req, res) => {
+  const FRONTEND_URL = env.FRONTEND_URL || "https://www.ledovalley.com";
+
   try {
     const payload =
-      req.body && Object.keys(req.body).length
-        ? req.body
-        : req.query;
+      req.body && Object.keys(req.body).length ? req.body : req.query;
 
-    const { txnid, error_Message } = payload || {};
+    console.log("PAYU FAILURE RECEIVED:", JSON.stringify(payload, null, 2));
+
+    const { txnid, status, error_Message } = payload || {};
 
     if (!txnid) {
-      return res.redirect(
-        `${env.FRONTEND_URL}/payment/payment-failed`
-      );
+      console.warn("PAYU FAILURE: No txnid found in payload");
+      return res.redirect(`${FRONTEND_URL}/payment/payment-failed`);
     }
 
     const baseOrderNumber = txnid.split("A")[0];
+    console.log(`Processing failure for Order: ${baseOrderNumber}`);
 
     const order = await Order.findOne({
       orderNumber: baseOrderNumber,
@@ -210,25 +211,28 @@ export const payuFailure = async (req, res) => {
 
     if (order && order.payment.status !== "SUCCESS") {
       order.payment.status = "FAILED";
-      order.payment.failureReason = error_Message || null;
+      order.payment.failureReason = error_Message || status || "Cancelled";
       order.status = "PAYMENT_FAILED";
       await order.save();
+      console.log(`Order ${baseOrderNumber} status updated to FAILED`);
     }
 
-    if (order) {
-      return res.redirect(
-        `${env.FRONTEND_URL}/payment/payment-failed?orderId=${order._id}&error=${encodeURIComponent(error_Message || "Payment failed")}`
-      );
-    }
+    const redirectUrl = order
+      ? `${FRONTEND_URL}/payment/payment-failed?orderId=${order._id}&error=${encodeURIComponent(
+          error_Message || "Payment failed or cancelled"
+        )}`
+      : `${FRONTEND_URL}/payment/payment-failed`;
 
-    return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-failed`
-    );
+    console.log(`Redirecting user to: ${redirectUrl}`);
+    return res.redirect(redirectUrl);
   } catch (error) {
-    console.error("PAYU FAILURE ERROR:", error);
+    console.error("PAYU FAILURE HANDLER CRASHED:", error);
 
+    // Final safety redirect to ensure user is never stuck on a 502/blank page
     return res.redirect(
-      `${env.FRONTEND_URL}/payment/payment-failed?error=${encodeURIComponent(error.message || "An unexpected error occurred")}`
+      `${FRONTEND_URL}/payment/payment-failed?error=${encodeURIComponent(
+        error.message || "An unexpected error occurred"
+      )}`
     );
   }
 };
