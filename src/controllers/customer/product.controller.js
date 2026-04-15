@@ -49,24 +49,49 @@ export const listProducts = async (req, res) => {
       status: "ACTIVE",
     };
 
+    const filterPipeline = [];
+
     /* =====================
        SEARCH
     ===================== */
     if (search?.trim()) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      productMatch.$or = [
-        { name: { $regex: escaped, $options: "i" } },
-        { teaType: { $regex: escaped, $options: "i" } },
-        { tags: escaped.toUpperCase() },
-      ];
+      filterPipeline.push({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { teaType: { $regex: escaped, $options: "i" } },
+          { tags: escaped.toUpperCase() },
+        ],
+      });
     }
 
+    /* =====================
+       TAG
+    ===================== */
     if (tag) {
       productMatch.tags = tag.toUpperCase();
     }
 
+    /* =====================
+       TEA TYPE (With Organic Logic)
+    ===================== */
     if (teaTypeMatches.length) {
-      productMatch.teaType = { $in: teaTypeMatches };
+      if (selectedTeaTypes.includes("Organic Tea")) {
+        // If "Organic Tea" is filtered, match either type OR tag
+        filterPipeline.push({
+          $or: [
+            { teaType: { $in: teaTypeMatches } },
+            { tags: "ORGANIC" },
+          ],
+        });
+      } else {
+        productMatch.teaType = { $in: teaTypeMatches };
+      }
+    }
+
+    // Merge complex filters into productMatch using $and
+    if (filterPipeline.length > 0) {
+      productMatch.$and = filterPipeline;
     }
 
     /* ======================================================

@@ -12,33 +12,44 @@ export const getAllBanners = async (req, res) => {
     res.json(banners);
 };
 
-/* =========================
-   CREATE
-========================= */
 export const createBanner = async (req, res) => {
     try {
-        const { title, subtitle, buttonText, buttonLink } =
+        const { title, subtitle, buttonText, buttonLink, teaType } =
             req.body;
 
-        if (!req.file) {
+        if (!req.files || !req.files["image"] || !req.files["image"][0]) {
             return res
                 .status(400)
-                .json({ message: "Image required" });
+                .json({ message: "Main image required" });
         }
 
-        const banner = await ShopBanner.create({
+        const imageFile = req.files["image"][0];
+        const mobileImageFile = req.files["mobileImage"] ? req.files["mobileImage"][0] : null;
+
+        const bannerData = {
             image: {
-                url: req.file.path,
-                publicId: req.file.filename,
+                url: imageFile.path,
+                publicId: imageFile.filename,
             },
             title,
             subtitle,
             buttonText,
             buttonLink,
-        });
+            teaType: teaType || null,
+        };
+
+        if (mobileImageFile) {
+            bannerData.mobileImage = {
+                url: mobileImageFile.path,
+                publicId: mobileImageFile.filename,
+            };
+        }
+
+        const banner = await ShopBanner.create(bannerData);
 
         res.json(banner);
     } catch (error) {
+        console.error("CREATE BANNER ERROR:", error);
         res.status(500).json({
             message: "Failed to create banner",
         });
@@ -61,14 +72,23 @@ export const deleteBanner = async (req, res) => {
         }
 
         // delete from cloudinary
-        await cloudinary.uploader.destroy(
-            banner.image.publicId
-        );
+        if (banner.image?.publicId) {
+            await cloudinary.uploader.destroy(
+                banner.image.publicId
+            );
+        }
+
+        if (banner.mobileImage?.publicId) {
+            await cloudinary.uploader.destroy(
+                banner.mobileImage.publicId
+            );
+        }
 
         await banner.deleteOne();
 
         res.json({ message: "Deleted successfully" });
-    } catch {
+    } catch (error) {
+        console.error("DELETE BANNER ERROR:", error);
         res.status(500).json({
             message: "Failed to delete",
         });

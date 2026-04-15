@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const shopBannerSchema = new mongoose.Schema(
+const homeBannerSchema = new mongoose.Schema(
   {
     image: {
       url: { type: String, required: true },
@@ -10,12 +10,6 @@ const shopBannerSchema = new mongoose.Schema(
     mobileImage: {
       url: String,
       publicId: String,
-    },
-
-    teaType: {
-      type: String,
-      enum: ["Black Tea", "Green Tea", "Organic Tea", "Speciality Tea", null],
-      default: null,
     },
 
     title: String,
@@ -37,6 +31,6 @@ const shopBannerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-shopBannerSchema.index({ order: 1 });
+homeBannerSchema.index({ order: 1 });
 
-export default mongoose.model("ShopBanner", shopBannerSchema);
+export default mongoose.model("HomeBanner", homeBannerSchema);

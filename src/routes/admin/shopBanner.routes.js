@@ -16,7 +16,10 @@ router.get("/", authenticateAdmin, getAllBanners);
 router.post(
     "/",
     authenticateAdmin,
-    uploadShopBannerImage.single("image"),
+    uploadShopBannerImage.fields([
+        { name: "image", maxCount: 1 },
+        { name: "mobileImage", maxCount: 1 },
+    ]),
     createBanner
 );
 

@@ -11,6 +11,7 @@ import adminCustomersRoutes from "./routes/admin/customer.routes.js";
 import adminReviewsRoutes from "./routes/admin/review.routes.js";
 import adminTopBannerRoutes from "./routes/admin/banner.routes.js";
 import adminShopBannerRoutes from "./routes/admin/shopBanner.routes.js";
+import adminHomeBannerRoutes from "./routes/admin/homeBanner.routes.js";
 import adminDashboardRoutes from "./routes/admin/dashboard.routes.js";
 
 import customerAuthRoutes from "./routes/customer/auth.routes.js";
@@ -27,6 +28,7 @@ import customerContactRoutes from "./routes/customer/contact.routes.js";
 import customerNewsletterRoutes from "./routes/customer/newsletter.routes.js";
 import customerTopBannerRoutes from "./routes/customer/banner.routes.js";
 import customerShopBannerRoutes from "./routes/customer/shopBanner.routes.js";
+import customerHomeBannerRoutes from "./routes/customer/homeBanner.routes.js";
 
 import shippingRoutes from "./routes/shipping.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -70,6 +72,7 @@ app.use("/api/admin/customers", adminCustomersRoutes);
 app.use("/api/admin/reviews", adminReviewsRoutes);
 app.use("/api/admin/top-banner", adminTopBannerRoutes);
 app.use("/api/admin/shop-banner", adminShopBannerRoutes);
+app.use("/api/admin/home-banner", adminHomeBannerRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 /* =======================
@@ -88,6 +91,7 @@ app.use("/api/customer", customerContactRoutes);
 app.use("/api/customer/newsletter", customerNewsletterRoutes);
 app.use("/api/customer/top-banner", customerTopBannerRoutes);
 app.use("/api/customer/shop-banner", customerShopBannerRoutes);
+app.use("/api/customer/home-banner", customerHomeBannerRoutes);
 
 app.use("/api", shippingRoutes);
 app.use("/api", paymentRoutes);
