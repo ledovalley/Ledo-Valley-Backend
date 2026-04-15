@@ -272,13 +272,29 @@ returnInfo: {
   }
 );
 
+import Counter from "./Counter.js";
 /* =====================================================
-   AUTO ORDER NUMBER GENERATION
+   AUTO ORDER NUMBER GENERATION (SEQUENTIAL)
 ===================================================== */
-orderSchema.pre("save", function (next) {
-  if (!this.orderNumber) {
-    const random = Math.floor(Math.random() * 1000);
-    this.orderNumber = `LV${Date.now()}${random}`;
+orderSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { id: "orderNumber" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+
+      // Pad with zeros to 6 digits, e.g., LV000001
+      const seqString = String(counter.seq).padStart(6, "0");
+      this.orderNumber = `LV${seqString}`;
+      
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
+    next();
   }
 });
 
