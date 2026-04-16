@@ -30,7 +30,7 @@ export const getDashboardStats = async (req, res, next) => {
       totalOrders,
       totalProducts,
       totalCustomers,
-      revenueResult,
+      financialResult,
       chartData,
       topProductsRaw,
       recentOrdersRaw
@@ -39,7 +39,7 @@ export const getDashboardStats = async (req, res, next) => {
       Product.countDocuments(),
       Customer.countDocuments(),
 
-      // total revenue
+      // Financials (Revenue & Profit)
       Order.aggregate([
         {
           $match: {
@@ -47,14 +47,34 @@ export const getDashboardStats = async (req, res, next) => {
           },
         },
         {
+          $project: {
+            grandTotal: 1,
+            itemCosts: {
+              $reduce: {
+                input: "$items",
+                initialValue: 0,
+                in: { $add: ["$$value", { $multiply: [{ $ifNull: ["$$this.costPrice", 0] }, "$$this.quantity"] }] }
+              }
+            }
+          }
+        },
+        {
           $group: {
             _id: null,
             totalRevenue: { $sum: "$grandTotal" },
+            totalCost: { $sum: "$itemCosts" },
           },
         },
+        {
+          $project: {
+            totalRevenue: 1,
+            totalProfit: { $subtract: ["$totalRevenue", "$totalCost"] }
+          }
+        }
       ]),
 
       // chart and comparison data
+// ... rest of the aggregations
       Order.aggregate([
         {
           $match: {
@@ -109,9 +129,8 @@ export const getDashboardStats = async (req, res, next) => {
     /* =========================================
        3. FORMAT DATA
     ========================================= */
-
-    const totalRevenue =
-      revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const { totalRevenue = 0, totalProfit = 0 } =
+      financialResult.length > 0 ? financialResult[0] : {};
 
     const salesChart = chartData.map((item) => ({
       date: item._id,
@@ -150,6 +169,7 @@ export const getDashboardStats = async (req, res, next) => {
       success: true,
       stats: {
         totalRevenue,
+        totalProfit, // ✅ New statistic
         totalOrders,
         totalProducts,
         totalCustomers,

@@ -5,6 +5,7 @@ import {
     updateOrderStatus,
     approveReturn,
     completeRefund,
+    downloadOrderInvoice,
 } from "../../controllers/admin/order.controller.js";
 import { authenticateAdmin } from "../../middlewares/authenticateAdmin.js";
 
@@ -24,5 +25,7 @@ router.patch(
     authenticateAdmin,
     completeRefund
 );
+
+router.get("/orders/:orderId/invoice", authenticateAdmin, downloadOrderInvoice);
 
 export default router;

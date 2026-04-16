@@ -380,3 +380,34 @@ export const completeRefund = async (req, res) => {
     });
   }
 };
+
+export const downloadOrderInvoice = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId).lean();
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    const { generateInvoicePDF } = await import("../../services/invoice.service.js");
+    const pdfBuffer = await generateInvoicePDF(order);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Invoice-${order.orderNumber}.pdf"`
+    );
+    res.setHeader("Content-Length", pdfBuffer.length);
+
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error("ADMIN DOWNLOAD INVOICE ERROR:", error);
+    res.status(500).json({
+      message: "Failed to generate invoice",
+    });
+  }
+};

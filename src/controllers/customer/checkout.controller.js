@@ -104,6 +104,7 @@ export const createCheckout = async (req, res) => {
         dimensions: variant.dimensions,
         quantity: cartItem.quantity,
         price: variant.sellingPrice,
+        costPrice: variant.costPrice, // ✅ Snapshot cost price
         finalPrice: variant.finalPrice,
         subtotal,
       });

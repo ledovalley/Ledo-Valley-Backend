@@ -63,6 +63,11 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
     },
 
+    costPrice: {
+      type: Number, // SNAPSHOT of purchase price for profit calculation
+      required: false,
+    },
+
     subtotal: {
       type: Number, // finalPrice * quantity
       required: true,
