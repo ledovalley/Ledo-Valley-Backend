@@ -184,14 +184,26 @@ export const createCheckout = async (req, res) => {
     });
 
     if (existingPendingOrder) {
-      return res.status(400).json({
-        message:
-          "You already have a pending payment. Please complete it.",
-      });
+      // Auto-cancel the stale pending order
+      existingPendingOrder.status = "CANCELLED";
+      existingPendingOrder.payment.status = "FAILED";
+      existingPendingOrder.payment.failureReason = "Superseded by new checkout attempt";
+
+      // Restore locked stock for the old order
+      for (const item of existingPendingOrder.items) {
+        const p = await Product.findById(item.productId).session(session);
+        const v = p?.variants.id(item.variantId);
+        if (v) {
+          v.stock += item.quantity;
+          v.availability = v.stock > 0 && v.status === "ACTIVE" && p.status === "ACTIVE";
+          await p.save({ session });
+        }
+      }
+      await existingPendingOrder.save({ session });
     }
 
     /* ============================
-       CREATE ORDER
+       CREATE NEW ORDER
     ============================ */
 
     const order = await Order.create(
