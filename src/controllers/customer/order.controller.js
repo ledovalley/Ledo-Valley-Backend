@@ -188,9 +188,9 @@ export const retryPayment = async (req, res) => {
             });
         }
 
-        if (order.payment.retryCount >= 3) {
+        if ((order.payment.retryCount || 0) >= 1) {
             return res.status(400).json({
-                message: "Maximum retry attempts reached (3)",
+                message: "Maximum retry attempts reached (1)",
             });
         }
 

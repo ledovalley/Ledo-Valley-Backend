@@ -233,8 +233,8 @@ export const createCheckout = async (req, res) => {
     ).trim();
     const email = String(customer.email || "").trim();
 
-    if (!email) {
-      throw new Error("Customer email required for payment");
+    if (!email || !customer.emailVerified) {
+      throw new Error("A verified customer email is required for payment");
     }
 
     const hashString =

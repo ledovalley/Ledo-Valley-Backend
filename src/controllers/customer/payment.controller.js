@@ -212,9 +212,39 @@ export const payuFailure = async (req, res) => {
     if (order && order.payment.status !== "SUCCESS") {
       order.payment.status = "FAILED";
       order.payment.failureReason = error_Message || status || "Cancelled";
-      order.status = "PAYMENT_FAILED";
+      
+      const currentRetries = order.payment.retryCount || 0;
+      
+      if (currentRetries >= 1) {
+        order.status = "CANCELLED";
+        console.log(`Order ${baseOrderNumber} status updated to CANCELLED (Retry Exhausted)`);
+        
+        // Restore stock since order is cancelled
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+          for (const item of order.items) {
+              const product = await Product.findById(item.productId).session(session);
+              const variant = product?.variants.id(item.variantId);
+              if (variant) {
+                  variant.stock += item.quantity;
+                  variant.availability = variant.stock > 0 && variant.status === "ACTIVE" && product.status === "ACTIVE";
+                  await product.save({ session });
+              }
+          }
+          await session.commitTransaction();
+        } catch (e) {
+          console.error("Failed to restore stock on auto-cancellation", e);
+          await session.abortTransaction();
+        } finally {
+          session.endSession();
+        }
+      } else {
+        order.status = "PAYMENT_FAILED";
+        console.log(`Order ${baseOrderNumber} status updated to PAYMENT_FAILED`);
+      }
+
       await order.save();
-      console.log(`Order ${baseOrderNumber} status updated to FAILED`);
     }
 
     const redirectUrl = order
