@@ -49,10 +49,10 @@ export const generateInvoicePDF = async (order) => {
             <div style="font-size: 14px; margin-top: 5px; color: #666;">Tax Invoice / Bill of Supply</div>
           </div>
           <div class="company-info">
-            <strong>Ledo Valley Tea Co.</strong><br/>
-            Tinsukia, Assam, India<br/>
+            <strong>Ledo Valley Consumer Products</strong><br/>
+            No. 7, Cosmo Plaza Market, Assam Trunk Road,<br/> SD Royal Enfield, Ajaanpeer Colony, Tinsukia<br/>
             Email: contact@ledovalley.com<br/>
-            <div class="gst-badge">GSTIN: 18XXXXXXXXXXXXX</div>
+            <div class="gst-badge">GSTIN: 18AAMFL1175F!Z8</div>
           </div>
         </div>
 

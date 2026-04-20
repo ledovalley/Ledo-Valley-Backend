@@ -290,14 +290,14 @@ orderSchema.pre("save", async function (next) {
         { new: true, upsert: true }
       );
 
-      // Pad with zeros to 6 digits, e.g., LV000001
-      const seqString = String(counter.seq).padStart(6, "0");
+      // Pad with zeros to 6 digits, starting from offset 500 (e.g., 1 -> 500)
+      const STARTING_OFFSET = 499;
+      const effectiveSeq = counter.seq + STARTING_OFFSET;
+      const seqString = String(effectiveSeq).padStart(6, "0");
       this.orderNumber = `LV${seqString}`;
     } catch (error) {
       next(error);
     }
-  } else {
-    // Just here 
   }
 });
 
