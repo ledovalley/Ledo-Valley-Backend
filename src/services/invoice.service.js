@@ -50,9 +50,9 @@ export const generateInvoicePDF = async (order) => {
           </div>
           <div class="company-info">
             <strong>Ledo Valley Consumer Products</strong><br/>
-            No. 7, Cosmo Plaza Market, Assam Trunk Road,<br/> SD Royal Enfield, Ajaanpeer Colony, Tinsukia<br/>
+            Unit no. 7, Cosmo Plaza Market,<br/>AT Road, Tinsukia, 786125<br/>
             Email: contact@ledovalley.com<br/>
-            <div class="gst-badge">GSTIN: 18AAMFL1175F!Z8</div>
+            <div class="gst-badge">GSTIN: 18AAMFL1175F1Z8</div>
           </div>
         </div>
 
