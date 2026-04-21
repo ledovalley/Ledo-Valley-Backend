@@ -6,7 +6,7 @@ import {
   getTestimonials,
 } from "../../controllers/customer/review.controller.js";
 import { authenticateCustomer } from "../../middlewares/authenticateCustomer.js";
-import { uploadImage } from "../../middlewares/uploadImage.js";
+import { uploadReviewImage } from "../../middlewares/uploadImage.js";
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.post(
 // Submit external/guest review (with optional image)
 router.post(
   "/external",
-  uploadImage.single("image"),
+  uploadReviewImage.single("image"),
   addExternalReview
 );
 
