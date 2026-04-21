@@ -23,14 +23,15 @@ import customerCartRoutes from "./routes/customer/cart.routes.js";
 import customerCouponRoutes from "./routes/customer/coupon.routes.js";
 import customerOrderRoutes from "./routes/customer/order.routes.js";
 import customerCheckoutRoutes from "./routes/customer/checkout.routes.js";
-import paymentRoutes from "./routes/customer/payment.routes.js";
 import customerContactRoutes from "./routes/customer/contact.routes.js";
 import customerNewsletterRoutes from "./routes/customer/newsletter.routes.js";
 import customerTopBannerRoutes from "./routes/customer/banner.routes.js";
 import customerShopBannerRoutes from "./routes/customer/shopBanner.routes.js";
 import customerHomeBannerRoutes from "./routes/customer/homeBanner.routes.js";
+import customerReviewRoutes from "./routes/customer/review.routes.js";
 
 import shippingRoutes from "./routes/shipping.routes.js";
+import paymentRoutes from "./routes/customer/payment.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -47,7 +48,6 @@ app.use(
         /^https:\/\/test\.payu\.in$/
       ];
 
-      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
 
       const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
@@ -76,9 +76,9 @@ app.get("/health", (req, res) => {
   });
 });
 
-/* =======================
+/* ======================
    ADMIN ROUTES
-======================= */
+====================== */
 app.use("/api/auth/admin", adminAuthRoutes);
 app.use("/api/admin", adminProductRoutes);
 app.use("/api/admin", adminCouponRoutes);
@@ -92,9 +92,9 @@ app.use("/api/admin/shop-banner", adminShopBannerRoutes);
 app.use("/api/admin/home-banner", adminHomeBannerRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 
-/* =======================
-CUSTOMER ROUTES
-======================= */
+/* ======================
+   CUSTOMER ROUTES
+====================== */
 app.use("/api/auth/customer", customerAuthRoutes);
 app.use("/api/customer", customerProductRoutes);
 app.use("/api/customer", customerProfileRoutes);
@@ -109,6 +109,7 @@ app.use("/api/customer/newsletter", customerNewsletterRoutes);
 app.use("/api/customer/top-banner", customerTopBannerRoutes);
 app.use("/api/customer/shop-banner", customerShopBannerRoutes);
 app.use("/api/customer/home-banner", customerHomeBannerRoutes);
+app.use("/api/customer/reviews", customerReviewRoutes);
 
 app.use("/api", shippingRoutes);
 app.use("/api", paymentRoutes);
