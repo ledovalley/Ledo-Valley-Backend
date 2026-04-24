@@ -1,6 +1,7 @@
 import Product, { TEA_TYPES } from "../../models/Product.js";
 import cloudinary from "../../services/cloudinary.service.js";
 import slugify from "slugify";
+import mongoose from "mongoose";
 
 const calculateFinalPrice = (sellingPrice, discount) => {
   if (!discount || !discount.value) return sellingPrice;
@@ -74,7 +75,7 @@ export const createProduct = async (req, res) => {
 
     res.status(201).json(product);
   } catch (error) {
-    console.error("Create product error:", error);
+    console.error("CREATE PRODUCT ERROR:", error);
     res.status(500).json({ message: "Failed to create product" });
   }
 };
@@ -86,6 +87,10 @@ export const deleteProduct = async (req, res) => {
   try {
     const { productId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
     const product = await Product.findById(productId);
 
     if (!product) {
@@ -94,19 +99,12 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    /* --------------------------------
-       OPTIONAL SAFETY CHECK
-       Prevent deleting active product
-    --------------------------------- */
     if (product.status === "ACTIVE") {
       return res.status(400).json({
         message: "Deactivate product before deleting",
       });
     }
 
-    /* --------------------------------
-       Delete all variant images
-    --------------------------------- */
     for (const variant of product.variants) {
       for (const img of variant.images) {
         if (img.publicId) {
@@ -115,9 +113,6 @@ export const deleteProduct = async (req, res) => {
       }
     }
 
-    /* --------------------------------
-       Delete product
-    --------------------------------- */
     await product.deleteOne();
 
     res.json({
@@ -125,7 +120,7 @@ export const deleteProduct = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Delete product error:", error);
+    console.error("DELETE PRODUCT ERROR:", error);
     res.status(500).json({
       message: "Failed to delete product",
     });
@@ -133,7 +128,7 @@ export const deleteProduct = async (req, res) => {
 };
 
 /* =====================
-   ADD VARIANT (UPDATED)
+   ADD VARIANT
 ===================== */
 export const addVariant = async (req, res) => {
   const session = await Product.startSession();
@@ -151,13 +146,16 @@ export const addVariant = async (req, res) => {
       stock,
     } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      throw new Error("Invalid product ID");
+    }
+
     const product = await Product.findById(productId).session(session);
     if (!product) throw new Error("Product not found");
 
     const skuUpper = variantSku?.toUpperCase();
     if (!skuUpper) throw new Error("Variant SKU required");
 
-    // 🔥 Global SKU protection
     const skuExists = await Product.findOne({
       "variants.variantSku": skuUpper,
     }).session(session);
@@ -165,10 +163,6 @@ export const addVariant = async (req, res) => {
     if (skuExists) {
       throw new Error("Variant SKU already exists globally");
     }
-
-    /* =====================
-       PARSE NESTED FIELDS
-    ===================== */
 
     const parsedWeight =
       typeof weight === "string" ? JSON.parse(weight) : weight;
@@ -202,19 +196,11 @@ export const addVariant = async (req, res) => {
       parsedDiscount
     );
 
-    /* =====================
-       IMAGES
-    ===================== */
-
     const images =
       req.files?.map((file) => ({
         url: file.path,
         publicId: file.filename,
       })) || [];
-
-    /* =====================
-       PUSH VARIANT
-    ===================== */
 
     product.variants.push({
       variantSku: skuUpper,
@@ -227,8 +213,7 @@ export const addVariant = async (req, res) => {
       stock: parsedStock,
       images,
       availability:
-        product.status === "ACTIVE" &&
-        parsedStock > 0,
+        product.status === "ACTIVE" && parsedStock > 0,
     });
 
     await product.save({ session });
@@ -249,11 +234,19 @@ export const addVariant = async (req, res) => {
 };
 
 /* =====================
-   UPDATE VARIANT (UPDATED)
+   UPDATE VARIANT
 ===================== */
 export const updateVariant = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(variantId)) {
+      return res.status(400).json({ message: "Invalid variant ID" });
+    }
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -265,17 +258,20 @@ export const updateVariant = async (req, res) => {
       return res.status(404).json({ message: "Variant not found" });
     }
 
-    // Update allowed fields
     if (req.body.stock !== undefined) {
       const parsedStock = Number(req.body.stock);
       if (isNaN(parsedStock) || parsedStock < 0) {
-        return res.status(400).json({ message: "Invalid stock" });
+        return res.status(400).json({ message: "Invalid stock value" });
       }
       variant.stock = parsedStock;
     }
 
     if (req.body.sellingPrice !== undefined) {
-      variant.sellingPrice = Number(req.body.sellingPrice);
+      const parsedPrice = Number(req.body.sellingPrice);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ message: "Invalid selling price" });
+      }
+      variant.sellingPrice = parsedPrice;
     }
 
     if (req.body.discount !== undefined) {
@@ -283,11 +279,9 @@ export const updateVariant = async (req, res) => {
         typeof req.body.discount === "string"
           ? JSON.parse(req.body.discount)
           : req.body.discount;
-
       variant.discount = parsedDiscount;
     }
 
-    // 🔥 Always recalc final price
     variant.finalPrice = calculateFinalPrice(
       variant.sellingPrice,
       variant.discount
@@ -300,47 +294,31 @@ export const updateVariant = async (req, res) => {
 
     await product.save();
 
-    res.json({ message: "Variant updated", variant });
+    res.json({
+      success: true,
+      message: "Variant updated successfully",
+      variant,
+    });
   } catch (error) {
-    console.error("Update variant error:", error);
+    console.error("UPDATE VARIANT ERROR:", error);
     res.status(500).json({ message: "Failed to update variant" });
   }
 };
 
 /* =====================
-   TOGGLE VARIANT STATUS (UPDATED)
+   TOGGLE VARIANT STATUS
 ===================== */
 export const toggleVariantStatus = async (req, res) => {
-  const { productId, variantId } = req.params;
-
-  const product = await Product.findById(productId);
-  if (!product) {
-    return res.status(404).json({ message: "Product not found" });
-  }
-
-  const variant = product.variants.id(variantId);
-  if (!variant) {
-    return res.status(404).json({ message: "Variant not found" });
-  }
-
-  variant.status =
-    variant.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-
-  variant.availability =
-    product.status === "ACTIVE" &&
-    variant.status === "ACTIVE" &&
-    variant.stock > 0;
-
-  await product.save();
-  res.json(variant);
-};
-
-/* =====================
-   DELETE VARIANT
-===================== */
-export const deleteVariant = async (req, res) => {
   try {
     const { productId, variantId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(variantId)) {
+      return res.status(400).json({ message: "Invalid variant ID" });
+    }
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -352,13 +330,50 @@ export const deleteVariant = async (req, res) => {
       return res.status(404).json({ message: "Variant not found" });
     }
 
-    /* ---------------------
-       Delete images from Cloudinary
-    --------------------- */
-    for (const img of variant.images) {
-      if (img.publicId) {
-        await cloudinary.uploader.destroy(img.publicId);
-      }
+    variant.status =
+      variant.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+    variant.availability =
+      product.status === "ACTIVE" &&
+      variant.status === "ACTIVE" &&
+      variant.stock > 0;
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Variant status updated",
+      variant,
+    });
+  } catch (error) {
+    console.error("TOGGLE VARIANT STATUS ERROR:", error);
+    res.status(500).json({ message: "Failed to update variant status" });
+  }
+};
+
+/* =====================
+   DELETE VARIANT
+===================== */
+export const deleteVariant = async (req, res) => {
+  try {
+    const { productId, variantId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(variantId)) {
+      return res.status(400).json({ message: "Invalid variant ID" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const variant = product.variants.id(variantId);
+    if (!variant) {
+      return res.status(404).json({ message: "Variant not found" });
     }
 
     if (product.variants.length <= 1) {
@@ -367,98 +382,127 @@ export const deleteVariant = async (req, res) => {
       });
     }
 
-    /* ---------------------
-       Remove variant safely (Mongoose v7+)
-    --------------------- */
-    product.variants.pull({ _id: variantId });
+    for (const img of variant.images) {
+      if (img.publicId) {
+        await cloudinary.uploader.destroy(img.publicId);
+      }
+    }
 
+    product.variants.pull({ _id: variantId });
     await product.save();
 
     res.json({ message: "Variant deleted successfully" });
   } catch (error) {
-    console.error("Delete variant error:", error);
+    console.error("DELETE VARIANT ERROR:", error);
     res.status(500).json({ message: "Failed to delete variant" });
   }
 };
 
 /* =====================
-   TOGGLE PRODUCT STATUS (UPDATED)
+   TOGGLE PRODUCT STATUS
 ===================== */
 export const toggleProductStatus = async (req, res) => {
-  const { productId } = req.params;
+  try {
+    const { productId } = req.params;
 
-  const product = await Product.findById(productId);
-  if (!product) {
-    return res.status(404).json({ message: "Product not found" });
-  }
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
 
-  // 🔥 Prevent activation without variants
-  if (product.status === "DRAFT" && product.variants.length === 0) {
-    return res.status(400).json({
-      message: "Cannot activate draft product without variants",
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    if (product.status === "DRAFT" && product.variants.length === 0) {
+      return res.status(400).json({
+        message: "Cannot activate draft product without variants",
+      });
+    }
+
+    product.status =
+      product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+    product.variants.forEach((variant) => {
+      variant.availability =
+        product.status === "ACTIVE" &&
+        variant.status === "ACTIVE" &&
+        variant.stock > 0;
     });
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Product status updated",
+      status: product.status,
+    });
+  } catch (error) {
+    console.error("TOGGLE PRODUCT STATUS ERROR:", error);
+    res.status(500).json({ message: "Failed to update product status" });
   }
-
-  product.status =
-    product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-
-  product.variants.forEach((variant) => {
-    variant.availability =
-      product.status === "ACTIVE" &&
-      variant.status === "ACTIVE" &&
-      variant.stock > 0;
-  });
-
-  await product.save();
-
-  res.json({
-    message: "Product status updated",
-    status: product.status,
-  });
 };
 
 /* =====================
    GET ALL PRODUCTS (ADMIN)
 ===================== */
 export const getAllProducts = async (req, res) => {
-  const products = await Product.find()
-    .sort({ createdAt: -1 })
-    .select("name status variants createdAt featured tags");
+  try {
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .select("name status variants createdAt featured tags");
 
-  res.json(
-    products.map((p) => ({
-      _id: p._id,
-      name: p.name,
-      status: p.status,
-      variantCount: p.variants.length,
-      createdAt: p.createdAt,
-      featured: p.featured,
-      tags: p.tags,
-    }))
-  );
+    res.json(
+      products.map((p) => ({
+        _id: p._id,
+        name: p.name,
+        status: p.status,
+        variantCount: p.variants.length,
+        createdAt: p.createdAt,
+        featured: p.featured,
+        tags: p.tags,
+      }))
+    );
+  } catch (error) {
+    console.error("GET ALL PRODUCTS ERROR:", error);
+    res.status(500).json({ message: "Failed to fetch products" });
+  }
 };
-
 
 /* =====================
    GET SINGLE PRODUCT (ADMIN)
 ===================== */
 export const getProductById = async (req, res) => {
-  const { productId } = req.params;
+  try {
+    const { productId } = req.params;
 
-  const product = await Product.findById(productId);
-  if (!product) {
-    return res.status(404).json({ message: "Product not found" });
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error("GET PRODUCT ERROR:", error);
+    res.status(500).json({ message: "Failed to fetch product" });
   }
-
-  res.json(product);
 };
 
 /* =====================
-   UPDATE PRODUCT META (FULL FIX)
+   UPDATE PRODUCT META
 ===================== */
 export const updateProductMeta = async (req, res) => {
   try {
     const { productId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
     const {
       name,
       featured,
@@ -476,18 +520,9 @@ export const updateProductMeta = async (req, res) => {
       });
     }
 
-    /* ---------------------
-       BASIC FIELDS
-    --------------------- */
-
     if (name !== undefined) {
       product.name = name.trim();
-
-      // regenerate slug if name changes
-      product.slug = slugify(name, {
-        lower: true,
-        strict: true,
-      });
+      product.slug = slugify(name, { lower: true, strict: true });
     }
 
     if (description !== undefined) {
@@ -500,7 +535,6 @@ export const updateProductMeta = async (req, res) => {
           message: "Invalid tea type",
         });
       }
-
       product.teaType = teaType;
     }
 
@@ -516,24 +550,15 @@ export const updateProductMeta = async (req, res) => {
       product.featured = featured;
     }
 
-    /* ---------------------
-       STATUS UPDATE
-    --------------------- */
-
     if (status !== undefined) {
-      if (
-        status === "ACTIVE" &&
-        product.variants.length === 0
-      ) {
+      if (status === "ACTIVE" && product.variants.length === 0) {
         return res.status(400).json({
-          message:
-            "Cannot activate product without at least one variant",
+          message: "Cannot activate product without at least one variant",
         });
       }
 
       product.status = status;
 
-      // recalc availability for variants
       product.variants.forEach((variant) => {
         variant.availability =
           product.status === "ACTIVE" &&
@@ -545,12 +570,13 @@ export const updateProductMeta = async (req, res) => {
     await product.save();
 
     res.json({
+      success: true,
       message: "Product updated successfully",
       product,
     });
 
   } catch (error) {
-    console.error("Update product error:", error);
+    console.error("UPDATE PRODUCT META ERROR:", error);
     res.status(500).json({
       message: "Failed to update product",
     });
