@@ -3,6 +3,7 @@ import {
     listAllOrders,
     getOrderById,
     updateOrderStatus,
+    updatePaymentStatus,
     approveReturn,
     completeRefund,
     downloadOrderInvoice,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.get("/orders", authenticateAdmin, listAllOrders);
 router.get("/orders/:orderId", authenticateAdmin, getOrderById);
 router.patch("/orders/:orderId/status", authenticateAdmin, updateOrderStatus);
+router.patch("/orders/:orderId/payment-status", authenticateAdmin, updatePaymentStatus);
 router.patch(
     "/orders/:orderId/approve-return",
     authenticateAdmin,

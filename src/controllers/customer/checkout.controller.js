@@ -5,6 +5,7 @@ import Product from "../../models/Product.js";
 import Coupon from "../../models/Coupon.js";
 import Order from "../../models/Order.js";
 import { env } from "../../config/env.js";
+import { sendOrderConfirmationEmail } from "../../services/email.service.js";
 
 /* ======================================================
    CONSTANTS
@@ -24,7 +25,7 @@ export const createCheckout = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { addressId, couponCode } = req.body;
+    const { addressId, couponCode, paymentMethod = "PAYU" } = req.body;
 
     const customer = await Customer.findById(req.customer.id).session(session);
 
@@ -223,19 +224,68 @@ export const createCheckout = async (req, res) => {
           discountAmount,
           grandTotal,
           coupon: couponSnapshot,
-          status: "PAYMENT_PENDING",
-          payment: { status: "PENDING" },
+          status: paymentMethod === "COD" ? "PLACED" : "PAYMENT_PENDING",
+          payment: { 
+            status: "PENDING",
+            method: paymentMethod
+          },
         },
       ],
       { session }
     );
 
-    const txnid = `${order[0].orderNumber}A0`;
+    if (paymentMethod === "COD") {
+      /* ============================
+         COD STOCK & CART UPDATE
+      ============================ */
+      for (const item of order[0].items) {
+        const p = await Product.findById(item.productId).session(session);
+        const v = p?.variants.id(item.variantId);
+        if (v) {
+          v.stock -= item.quantity;
+          v.availability = v.stock > 0 && v.status === "ACTIVE" && p.status === "ACTIVE";
+          await p.save({ session });
+        }
+      }
+
+      await Customer.findByIdAndUpdate(
+        customer._id,
+        { cart: [] },
+        { session }
+      );
+
+      if (couponSnapshot?.code) {
+        await Coupon.findOneAndUpdate(
+          { code: couponSnapshot.code },
+          { $inc: { usedCount: 1 } },
+          { session }
+        );
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Trigger background email
+      (async () => {
+        try {
+          await sendOrderConfirmationEmail(order[0]);
+        } catch (err) {
+          console.error("COD EMAIL ERROR:", err);
+        }
+      })();
+
+      return res.json({
+        success: true,
+        method: "COD",
+        orderNumber: order[0].orderNumber,
+      });
+    }
 
     /* ============================
        PAYU HASH (EXACT FORMAT)
     ============================ */
 
+    const txnid = `${order[0].orderNumber}A0`;
     const PAYU_KEY = env.PAYU_KEY.trim();
     const PAYU_SALT = env.PAYU_SALT.trim();
 

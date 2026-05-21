@@ -291,6 +291,44 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
+export const updatePaymentStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    if (order.payment.method !== "COD") {
+      return res.status(400).json({
+        message: "Can only manually update payment status for COD orders",
+      });
+    }
+
+    order.payment.status = status;
+    if (status === "SUCCESS") {
+      order.payment.paidAt = new Date();
+    }
+
+    await order.save();
+
+    res.json({
+      message: "Payment status updated",
+      order,
+    });
+  } catch (error) {
+    console.error("UPDATE PAYMENT STATUS ERROR:", error);
+    res.status(500).json({
+      message: "Failed to update payment status",
+    });
+  }
+};
+
 export const approveReturn = async (req, res) => {
   try {
     const { orderId } = req.params;
