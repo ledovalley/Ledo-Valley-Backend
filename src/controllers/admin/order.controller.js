@@ -129,6 +129,7 @@ export const updateOrderStatus = async (req, res) => {
     /* ================= VALID TRANSITIONS ================= */
 
     const allowedTransitions = {
+      PLACED: ["READY_TO_SHIP", "CANCELLED"],
       PAYMENT_SUCCESS: ["READY_TO_SHIP", "CANCELLED"],
       READY_TO_SHIP: ["SHIPPED", "CANCELLED"],
       SHIPPED: ["DELIVERED"],
@@ -153,9 +154,9 @@ export const updateOrderStatus = async (req, res) => {
     ===================================================== */
     if (status === "READY_TO_SHIP") {
 
-      if (order.payment.status !== "SUCCESS") {
+      if (order.payment.status !== "SUCCESS" && order.payment.method !== "COD") {
         return res.status(400).json({
-          message: "Cannot ship unpaid order",
+          message: "Cannot ship unpaid order (except COD)",
         });
       }
 

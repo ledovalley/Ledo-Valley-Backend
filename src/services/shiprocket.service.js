@@ -140,7 +140,7 @@ export const createShiprocketOrder = async (order) => {
 
       shipping_is_billing: true,
       order_items: items,
-      payment_method: "Prepaid",
+      payment_method: order.payment?.method === "COD" ? "COD" : "Prepaid",
       sub_total: order.grandTotal,
 
       length: maxLength,

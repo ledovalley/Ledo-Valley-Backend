@@ -2,6 +2,7 @@ import axios from "axios";
 import Order from "../../models/Order.js";
 import { getShiprocketToken, assignCourier } from "../../services/shiprocket.service.js";
 import { env } from "../../config/env.js";
+import { sendOrderShippedEmail, sendOrderDeliveredEmail } from "../../services/email.service.js";
 
 /* ======================================================
    SHIPROCKET WEBHOOK
@@ -60,6 +61,11 @@ export const shiprocketWebhook = async (req, res) => {
             case "DELIVERED":
                 order.status = "DELIVERED";
                 order.shipping.deliveredAt = new Date();
+
+                if (order.payment?.method === "COD" && order.payment?.status !== "SUCCESS") {
+                    order.payment.status = "SUCCESS";
+                    order.payment.paidAt = new Date();
+                }
 
                 if (order.customerSnapshot?.email) {
                     await sendOrderDeliveredEmail(order);
