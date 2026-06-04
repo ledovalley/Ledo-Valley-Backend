@@ -234,6 +234,11 @@ returnInfo: {
       default: 0,
     },
 
+    codCharge: {
+      type: Number,
+      default: 0,
+    },
+
     discountAmount: {
       type: Number,
       default: 0,

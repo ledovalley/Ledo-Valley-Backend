@@ -11,8 +11,8 @@ import { sendOrderConfirmationEmail } from "../../services/email.service.js";
    CONSTANTS
 ====================================================== */
 const GST_PERCENT = 5;
-const FREE_SHIPPING_MIN_ORDER_VALUE = 500;
-const FLAT_SHIPPING_CHARGE = 60;
+const FREE_SHIPPING_MIN_ORDER_VALUE = 1000;
+const FLAT_SHIPPING_CHARGE = 90;
 
 const getShippingAmount = (itemsTotal) =>
   itemsTotal >= FREE_SHIPPING_MIN_ORDER_VALUE ? 0 : FLAT_SHIPPING_CHARGE;
@@ -134,6 +134,10 @@ export const createCheckout = async (req, res) => {
         throw new Error("Coupon usage limit reached");
       }
 
+      if (coupon.notApplicableOnCOD && paymentMethod === "COD") {
+        throw new Error("Coupon is not applicable on COD orders");
+      }
+
       if (itemsTotal < coupon.minOrderAmount) {
         throw new Error(
           `Minimum order ₹${coupon.minOrderAmount} required`
@@ -170,9 +174,10 @@ export const createCheckout = async (req, res) => {
     );
 
     const shippingAmount = getShippingAmount(itemsTotal);
+    const codCharge = paymentMethod === "COD" ? 9 : 0;
 
     const grandTotal = Number(
-      (taxableAmount + shippingAmount).toFixed(2)
+      (taxableAmount + shippingAmount + codCharge).toFixed(2)
     );
 
     if (grandTotal <= 0) {
@@ -221,6 +226,7 @@ export const createCheckout = async (req, res) => {
           itemsTotal,
           gstAmount,
           shippingAmount,
+          codCharge,
           discountAmount,
           grandTotal,
           coupon: couponSnapshot,

@@ -79,5 +79,6 @@ export const validateCoupon = async (req, res) => {
     valid: true,
     discountAmount,
     finalAmount,
+    notApplicableOnCOD: coupon.notApplicableOnCOD,
   });
 };

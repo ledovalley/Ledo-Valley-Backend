@@ -11,6 +11,7 @@ export const createCoupon = async (req, res) => {
       maxDiscount,
       usageLimit,
       expiresAt,
+      notApplicableOnCOD,
     } = req.body;
 
     if (!code || !type || !value || !expiresAt) {
@@ -38,6 +39,7 @@ export const createCoupon = async (req, res) => {
       maxDiscount,
       usageLimit,
       expiresAt,
+      notApplicableOnCOD: Boolean(notApplicableOnCOD),
     });
 
     res.status(201).json(coupon);

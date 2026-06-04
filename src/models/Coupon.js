@@ -59,6 +59,11 @@ const couponSchema = new mongoose.Schema(
       enum: ["ACTIVE", "INACTIVE"],
       default: "ACTIVE",
     },
+
+    notApplicableOnCOD: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
