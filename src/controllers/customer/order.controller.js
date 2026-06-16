@@ -111,6 +111,10 @@ export const cancelMyOrder = async (req, res) => {
 
         order.status = "CANCELLED";
 
+        if (order.payment.status === "PENDING") {
+            order.payment.status = "FAILED";
+        }
+
         /* ==========================
            RESTORE STOCK IF PAID
         =========================== */
