@@ -134,8 +134,8 @@ export const createCheckout = async (req, res) => {
         throw new Error("Coupon usage limit reached");
       }
 
-      if (coupon.notApplicableOnCOD && paymentMethod === "COD") {
-        throw new Error("Coupon is not applicable on COD orders");
+      if (paymentMethod === "COD") {
+        throw new Error("Discount coupons are not allowed in COD orders");
       }
 
       if (itemsTotal < coupon.minOrderAmount) {
