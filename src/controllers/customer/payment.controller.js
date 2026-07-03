@@ -29,6 +29,7 @@ export const payuSuccess = async (req, res) => {
       email,
       firstname,
       amount,
+      additionalCharges,
     } = payload || {};
 
     if (!txnid || !hash) {
@@ -43,7 +44,7 @@ export const payuSuccess = async (req, res) => {
        VERIFY HASH (CORRECT FORMAT)
     ============================== */
 
-    const reverseHashString =
+    let reverseHashString =
       env.PAYU_SALT +
       "|" +
       status +
@@ -57,6 +58,10 @@ export const payuSuccess = async (req, res) => {
       txnid +
       "|" +
       env.PAYU_KEY;
+
+    if (additionalCharges) {
+      reverseHashString = additionalCharges + "|" + reverseHashString;
+    }
 
     const generatedHash = crypto
       .createHash("sha512")
