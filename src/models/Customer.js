@@ -105,7 +105,18 @@ const customerSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       unique: true,
-      sparse: true, // allow multiple null values
+      required: true, // made required for the new flow
+    },
+
+    password: {
+      type: String,
+      select: false,
+    },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
 
     emailVerified: {
@@ -113,12 +124,22 @@ const customerSchema = new mongoose.Schema(
       default: false,
     },
 
-    emailVerificationToken: {
+    emailVerificationOtp: {
       type: String,
-      select: false, // 🔥 security: never return automatically
+      select: false,
     },
 
-    emailVerificationTokenExpires: {
+    emailVerificationOtpExpires: {
+      type: Date,
+      select: false,
+    },
+
+    resetPasswordOtp: {
+      type: String,
+      select: false,
+    },
+
+    resetPasswordOtpExpires: {
       type: Date,
       select: false,
     },

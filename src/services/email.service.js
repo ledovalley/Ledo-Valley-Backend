@@ -8,10 +8,9 @@ import { env } from "../config/env.js";
 ====================================================== */
 
 const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(
-  brevo.TransactionalEmailsApiApiKeys.apiKey,
-  env.BREVO_API_KEY
-);
+
+// The enum might be tricky, it's safer to pass 0 which is the index for apiKey
+apiInstance.setApiKey(0, env.BREVO_API_KEY);
 
 /* ======================================================
    LOAD TEMPLATE (SAFE)
@@ -201,6 +200,36 @@ export const sendNewsletterVerificationEmail = async (to, token) => {
   await sendEmail({
     to,
     subject: "Confirm your subscription – Ledo Valley",
+    html,
+  });
+};
+
+/* ======================================================
+   SEND EMAIL OTP (Auth/Reset)
+====================================================== */
+export const sendEmailOtp = async (to, otp, purpose = "verification") => {
+  if (!to) return;
+
+  const subjectMap = {
+    verification: "Verify your email – Ledo Valley",
+    reset_password: "Password Reset OTP – Ledo Valley",
+  };
+
+  // We could use a template, but for OTP a simple styled HTML is fine
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
+      <h2 style="color: #333; text-align: center;">Ledo Valley</h2>
+      <p style="font-size: 16px; color: #555;">Here is your One-Time Password (OTP) for ${purpose.replace("_", " ")}:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="font-size: 32px; font-weight: bold; background: #f4f4f4; padding: 10px 20px; border-radius: 5px; letter-spacing: 5px;">${otp}</span>
+      </div>
+      <p style="font-size: 14px; color: #888;">This OTP is valid for 15 minutes. Do not share it with anyone.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to,
+    subject: subjectMap[purpose] || "Your OTP – Ledo Valley",
     html,
   });
 };
