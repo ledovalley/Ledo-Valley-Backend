@@ -6,6 +6,7 @@ import {
   forgotPassword, 
   resetPassword, 
   googleLogin,
+  googleSignup,
   sendOtp, 
   verifyOtpController 
 } from "../../controllers/customer/auth.controller.js";
@@ -22,6 +23,7 @@ router.post("/reset-password", resetPassword);
 
 // Google Auth
 router.post("/google-login", googleLogin);
+router.post("/google-signup", googleSignup);
 
 // Legacy SMS Auth (Strictly Rate Limited)
 router.post("/send-otp", smsOtpLimiter, sendOtp);

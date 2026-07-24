@@ -189,9 +189,61 @@ export const googleLogin = async (req, res) => {
     const { token: googleToken } = req.body;
     if (!googleToken) return res.status(400).json({ message: "Google token required" });
 
-    // Client ID shouldn't be strictly hardcoded here if possible, but let's assume it's passed from frontend config or env.
-    // For safety, we verify the token signature without strictly enforcing the client ID on backend if we don't have it in env, 
-    // but ideally we should. We'll use the one the user provided.
+    const clientId = "269574519983-ivgnorj2j3mev4t7p3ijn172gv58unnu.apps.googleusercontent.com";
+    const client = new OAuth2Client(clientId);
+
+    const ticket = await client.verifyIdToken({
+      idToken: googleToken,
+      audience: clientId,
+    });
+    
+    const payload = ticket.getPayload();
+    const { sub: googleId, email } = payload;
+    const lowercaseEmail = email.toLowerCase();
+
+    let customer = await Customer.findOne({ email: lowercaseEmail });
+
+    if (customer) {
+      if (!customer.googleId) {
+        customer.googleId = googleId;
+        await customer.save();
+      }
+      const token = generateCustomerToken(customer._id);
+      return res.json({ message: "Login successful", token, customer });
+    } else {
+      // User doesn't exist, need to collect phone number first
+      return res.status(202).json({ 
+        message: "Please provide a phone number to complete registration",
+        action: "COLLECT_PHONE",
+        googleToken // Return it so frontend can pass it to googleSignup
+      });
+    }
+  } catch (err) {
+    console.error("Google Login Error:", err);
+    res.status(500).json({ message: "Google login failed" });
+  }
+};
+
+/* ======================================================
+   GOOGLE SIGNUP (Complete Registration)
+====================================================== */
+export const googleSignup = async (req, res) => {
+  try {
+    const { token: googleToken, phone } = req.body;
+    if (!googleToken || !phone) {
+      return res.status(400).json({ message: "Google token and phone required" });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ message: "Invalid phone number format. Must be 10 digits and not a repeating sequence." });
+    }
+    
+    const normalizedPhone = normalizePhone(phone);
+    const existingPhone = await Customer.findOne({ phone: normalizedPhone });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Phone number already in use by another account" });
+    }
+
     const clientId = "269574519983-ivgnorj2j3mev4t7p3ijn172gv58unnu.apps.googleusercontent.com";
     const client = new OAuth2Client(clientId);
 
@@ -205,31 +257,23 @@ export const googleLogin = async (req, res) => {
     const lowercaseEmail = email.toLowerCase();
 
     let customer = await Customer.findOne({ email: lowercaseEmail });
-
     if (customer) {
-      if (!customer.googleId) {
-        customer.googleId = googleId;
-        await customer.save();
-      }
-    } else {
-      // Create new customer. Since phone is required, we might use a placeholder or prompt them later.
-      // The user said: "we will make it mandatory when registering to enter both email and phone."
-      // For Google Auth, we don't get phone. We will set a temporary one or leave it empty if schema allows.
-      // Schema requires phone. We will set a placeholder and they must update their profile.
-      customer = await Customer.create({
-        name,
-        email: lowercaseEmail,
-        googleId,
-        emailVerified: email_verified,
-        phone: `GOOGLE-${googleId.substring(0, 10)}`, // Placeholder
-      });
+       return res.status(400).json({ message: "User already exists. Please log in." });
     }
 
+    customer = await Customer.create({
+      name,
+      email: lowercaseEmail,
+      googleId,
+      emailVerified: email_verified,
+      phone: normalizedPhone,
+    });
+
     const token = generateCustomerToken(customer._id);
-    res.json({ message: "Login successful", token, customer });
+    res.status(201).json({ message: "Registration successful", token, customer });
   } catch (err) {
-    console.error("Google Login Error:", err);
-    res.status(500).json({ message: "Google login failed" });
+    console.error("Google Signup Error:", err);
+    res.status(500).json({ message: "Google signup failed" });
   }
 };
 
