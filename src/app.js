@@ -13,6 +13,7 @@ import adminTopBannerRoutes from "./routes/admin/banner.routes.js";
 import adminShopBannerRoutes from "./routes/admin/shopBanner.routes.js";
 import adminHomeBannerRoutes from "./routes/admin/homeBanner.routes.js";
 import adminDashboardRoutes from "./routes/admin/dashboard.routes.js";
+import adminSettingsRoutes from "./routes/admin/settings.routes.js";
 
 import customerAuthRoutes from "./routes/customer/auth.routes.js";
 import customerProductRoutes from "./routes/customer/product.routes.js";
@@ -29,6 +30,7 @@ import customerTopBannerRoutes from "./routes/customer/banner.routes.js";
 import customerShopBannerRoutes from "./routes/customer/shopBanner.routes.js";
 import customerHomeBannerRoutes from "./routes/customer/homeBanner.routes.js";
 import customerReviewRoutes from "./routes/customer/review.routes.js";
+import publicSettingsRoutes from "./routes/customer/public.routes.js";
 
 import shippingRoutes from "./routes/shipping.routes.js";
 import paymentRoutes from "./routes/customer/payment.routes.js";
@@ -91,6 +93,7 @@ app.use("/api/admin/top-banner", adminTopBannerRoutes);
 app.use("/api/admin/shop-banner", adminShopBannerRoutes);
 app.use("/api/admin/home-banner", adminHomeBannerRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/admin/settings", adminSettingsRoutes);
 
 /* ======================
    CUSTOMER ROUTES
@@ -110,6 +113,7 @@ app.use("/api/customer/top-banner", customerTopBannerRoutes);
 app.use("/api/customer/shop-banner", customerShopBannerRoutes);
 app.use("/api/customer/home-banner", customerHomeBannerRoutes);
 app.use("/api/customer/reviews", customerReviewRoutes);
+app.use("/api/public", publicSettingsRoutes);
 
 app.use("/api", shippingRoutes);
 app.use("/api", paymentRoutes);

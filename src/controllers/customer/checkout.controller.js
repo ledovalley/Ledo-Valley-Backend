@@ -4,18 +4,9 @@ import Customer from "../../models/Customer.js";
 import Product from "../../models/Product.js";
 import Coupon from "../../models/Coupon.js";
 import Order from "../../models/Order.js";
+import Settings from "../../models/Settings.js";
 import { env } from "../../config/env.js";
 import { sendOrderConfirmationEmail } from "../../services/email.service.js";
-
-/* ======================================================
-   CONSTANTS
-====================================================== */
-const GST_PERCENT = 5;
-const FREE_SHIPPING_MIN_ORDER_VALUE = 1000;
-const FLAT_SHIPPING_CHARGE = 90;
-
-const getShippingAmount = (itemsTotal) =>
-  itemsTotal >= FREE_SHIPPING_MIN_ORDER_VALUE ? 0 : FLAT_SHIPPING_CHARGE;
 
 /* ======================================================
    CREATE ORDER & INITIATE PAYMENT
@@ -31,6 +22,11 @@ export const createCheckout = async (req, res) => {
 
     if (!customer) throw new Error("Customer not found");
     if (!customer.cart.length) throw new Error("Cart is empty");
+
+    let appSettings = await Settings.findOne().session(session);
+    if (!appSettings) {
+      appSettings = new Settings(); // Default if empty
+    }
 
     /* ============================
        ADDRESS VALIDATION
@@ -105,7 +101,7 @@ export const createCheckout = async (req, res) => {
         dimensions: variant.dimensions,
         quantity: cartItem.quantity,
         price: variant.sellingPrice,
-        costPrice: variant.costPrice, // ✅ Snapshot cost price
+        costPrice: variant.costPrice,
         finalPrice: variant.finalPrice,
         subtotal,
       });
@@ -170,11 +166,11 @@ export const createCheckout = async (req, res) => {
     const taxableAmount = itemsTotal - discountAmount;
 
     const gstAmount = Number(
-      (taxableAmount - taxableAmount / (1 + GST_PERCENT / 100)).toFixed(2)
+      (taxableAmount - taxableAmount / (1 + appSettings.gstPercent / 100)).toFixed(2)
     );
 
-    const shippingAmount = getShippingAmount(itemsTotal);
-    const codCharge = paymentMethod === "COD" ? 9 : 0;
+    const shippingAmount = itemsTotal >= appSettings.freeShippingThreshold ? 0 : appSettings.flatShippingCharge;
+    const codCharge = paymentMethod === "COD" ? appSettings.codCharge : 0;
 
     const grandTotal = Number(
       (taxableAmount + shippingAmount + codCharge).toFixed(2)

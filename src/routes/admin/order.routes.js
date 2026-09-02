@@ -7,12 +7,14 @@ import {
     approveReturn,
     completeRefund,
     downloadOrderInvoice,
+    downloadBulkInvoices,
 } from "../../controllers/admin/order.controller.js";
 import { authenticateAdmin } from "../../middlewares/authenticateAdmin.js";
 
 const router = express.Router();
 
 router.get("/orders", authenticateAdmin, listAllOrders);
+router.get("/orders/bulk-invoice", authenticateAdmin, downloadBulkInvoices);
 router.get("/orders/:orderId", authenticateAdmin, getOrderById);
 router.patch("/orders/:orderId/status", authenticateAdmin, updateOrderStatus);
 router.patch("/orders/:orderId/payment-status", authenticateAdmin, updatePaymentStatus);

@@ -251,6 +251,10 @@ returnInfo: {
 
     coupon: couponSnapshotSchema,
 
+    cancellationReason: {
+      type: String,
+    },
+
     /* ================= STATUS ================= */
 
     status: {

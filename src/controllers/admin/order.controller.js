@@ -4,6 +4,7 @@ import { sendRefundEmail, sendOrderShippedEmail, sendOrderDeliveredEmail, sendOr
 import { refundPayU } from "../../services/payu.service.js";
 import { createShiprocketOrder } from "../../services/shiprocket.service.js";
 import { assignCourier, requestPickup } from "../../services/shiprocket.service.js";
+import { generateBulkInvoicePDF } from "../../services/invoice.service.js";
 
 /* ======================================================
    LIST ALL ORDERS (ADMIN)
@@ -92,6 +93,76 @@ export const listAllOrders = async (req, res) => {
   }
 };
 
+/* ======================================================
+   BULK DOWNLOAD INVOICES (ADMIN)
+====================================================== */
+export const downloadBulkInvoices = async (req, res) => {
+  try {
+    const {
+      search,
+      status,
+      paymentStatus,
+      startDate,
+      endDate,
+      sort = "newest",
+    } = req.query;
+
+    const query = {};
+
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "customerSnapshot.name": { $regex: search, $options: "i" } },
+        { "customerSnapshot.email": { $regex: search, $options: "i" } },
+        { "customerSnapshot.phone": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (paymentStatus) {
+      query["payment.status"] = paymentStatus;
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    let sortOption = { createdAt: -1 };
+    if (sort === "oldest") sortOption = { createdAt: 1 };
+    if (sort === "highValue") sortOption = { grandTotal: -1 };
+
+    // Fetch all matching orders (we might want a limit here in the future if this gets too big, but let's fetch all matching for now)
+    // To prevent total system crash, let's limit to max 500 invoices per bulk download.
+    const orders = await Order.find(query).sort(sortOption).limit(500).lean();
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: "No orders found for the given filters." });
+    }
+
+    const pdfBuffer = await generateBulkInvoicePDF(orders);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Bulk-Invoices-${new Date().toISOString().split('T')[0]}.pdf"`
+    );
+
+    return res.end(pdfBuffer);
+  } catch (error) {
+    console.error("BULK INVOICE ERROR:", error);
+    res.status(500).json({ message: "Failed to generate bulk invoices" });
+  }
+};
+
 export const getOrderById = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -116,7 +187,7 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status, remarks } = req.body;
 
     const order = await Order.findById(orderId);
 
@@ -272,6 +343,10 @@ export const updateOrderStatus = async (req, res) => {
 
       if (order.customerSnapshot?.email) {
         await sendRefundEmail(order);
+      }
+      
+      if (remarks) {
+        order.cancellationReason = remarks;
       }
     }
 
