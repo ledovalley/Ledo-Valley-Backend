@@ -64,13 +64,25 @@ const generateInvoiceHtml = (order) => {
             <span>₹${order.itemsTotal?.toLocaleString("en-IN")}</span>
           </div>
           <div class="totals-row">
-            <span>GST (Included)</span>
+            <span>GST (Inclusive of 5%)</span>
             <span>₹${order.gstAmount?.toLocaleString("en-IN")}</span>
           </div>
           <div class="totals-row">
-            <span>Shipping</span>
+            <span>
+              Shipping<br/>
+              <span style="font-size: 9px; color: #666;">(Inclusive of 5% GST)</span>
+            </span>
             <span>₹${order.shippingAmount?.toLocaleString("en-IN")}</span>
           </div>
+          ${order.codCharge > 0 ? `
+            <div class="totals-row">
+              <span>
+                COD Charge<br/>
+                <span style="font-size: 9px; color: #666;">(Inclusive of 5% GST)</span>
+              </span>
+              <span>₹${order.codCharge.toLocaleString("en-IN")}</span>
+            </div>
+          ` : ""}
           ${order.discountAmount > 0 ? `
             <div class="totals-row" style="color: #c62828">
               <span>Discount</span>
