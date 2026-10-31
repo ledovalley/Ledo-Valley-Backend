@@ -29,10 +29,11 @@ export const listCustomers = async (req, res) => {
         const matchStage = {};
 
         if (search) {
+            const cleanSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             matchStage.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
-                { phone: { $regex: search, $options: "i" } },
+                { name: { $regex: cleanSearch, $options: "i" } },
+                { email: { $regex: cleanSearch, $options: "i" } },
+                { phone: { $regex: cleanSearch, $options: "i" } },
             ];
         }
 
