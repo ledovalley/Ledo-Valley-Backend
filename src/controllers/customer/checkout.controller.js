@@ -16,7 +16,8 @@ export const createCheckout = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { addressId, couponCode, paymentMethod = "PAYU" } = req.body;
+    const { addressId, couponCode } = req.body;
+    const paymentMethod = "PAYU";
 
     const customer = await Customer.findById(req.customer.id).session(session);
 
@@ -130,10 +131,6 @@ export const createCheckout = async (req, res) => {
         throw new Error("Coupon usage limit reached");
       }
 
-      if (paymentMethod === "COD") {
-        throw new Error("Discount coupons are not allowed in COD orders");
-      }
-
       if (itemsTotal < coupon.minOrderAmount) {
         throw new Error(
           `Minimum order ₹${coupon.minOrderAmount} required`
@@ -170,10 +167,9 @@ export const createCheckout = async (req, res) => {
     );
 
     const shippingAmount = itemsTotal >= appSettings.freeShippingThreshold ? 0 : appSettings.flatShippingCharge;
-    const codCharge = paymentMethod === "COD" ? appSettings.codCharge : 0;
 
     const grandTotal = Number(
-      (taxableAmount + shippingAmount + codCharge).toFixed(2)
+      (taxableAmount + shippingAmount).toFixed(2)
     );
 
     if (grandTotal <= 0) {
@@ -222,11 +218,11 @@ export const createCheckout = async (req, res) => {
           itemsTotal,
           gstAmount,
           shippingAmount,
-          codCharge,
+          codCharge: 0,
           discountAmount,
           grandTotal,
           coupon: couponSnapshot,
-          status: paymentMethod === "COD" ? "PLACED" : "PAYMENT_PENDING",
+          status: "PAYMENT_PENDING",
           payment: { 
             status: "PENDING",
             method: paymentMethod
@@ -235,53 +231,6 @@ export const createCheckout = async (req, res) => {
       ],
       { session }
     );
-
-    if (paymentMethod === "COD") {
-      /* ============================
-         COD STOCK & CART UPDATE
-      ============================ */
-      for (const item of order[0].items) {
-        const p = await Product.findById(item.productId).session(session);
-        const v = p?.variants.id(item.variantId);
-        if (v) {
-          v.stock -= item.quantity;
-          v.availability = v.stock > 0 && v.status === "ACTIVE" && p.status === "ACTIVE";
-          await p.save({ session });
-        }
-      }
-
-      await Customer.findByIdAndUpdate(
-        customer._id,
-        { cart: [] },
-        { session }
-      );
-
-      if (couponSnapshot?.code) {
-        await Coupon.findOneAndUpdate(
-          { code: couponSnapshot.code },
-          { $inc: { usedCount: 1 } },
-          { session }
-        );
-      }
-
-      await session.commitTransaction();
-      session.endSession();
-
-      // Trigger background email
-      (async () => {
-        try {
-          await sendOrderConfirmationEmail(order[0]);
-        } catch (err) {
-          console.error("COD EMAIL ERROR:", err);
-        }
-      })();
-
-      return res.json({
-        success: true,
-        method: "COD",
-        orderNumber: order[0].orderNumber,
-      });
-    }
 
     /* ============================
        PAYU HASH (EXACT FORMAT)
